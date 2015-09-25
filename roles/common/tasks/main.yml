@@ -5,12 +5,6 @@
   with_items:
     - libselinux-python
 
-- name: disable ip*tables
-  template: src={{item}}.j2 dest=/etc/sysconfig/{{item}} owner=root group=root mode=0600
-  with_items:
-    - iptables
-    - ip6tables
-
 - name: disable selinux
   selinux: state=disabled
   when: ansible_selinux.status is not defined or ansible_selinux.status != "disabled"
