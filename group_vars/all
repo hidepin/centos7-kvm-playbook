@@ -1,0 +1,8 @@
+ansible_ssh_user: root
+sudo: no
+colon: ":"
+bridge_if: "{{ansible_default_ipv4.interface}}"
+bridge_mac: "{{ansible_default_ipv4.macaddress }}"
+bridge_ip: "{{ansible_default_ipv4.address}}"
+bridge_prefix: "{{ansible_default_ipv4.netmask}}"
+bridge_gateway: "{{ansible_default_ipv4.gateway}}"

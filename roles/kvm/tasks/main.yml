@@ -1,0 +1,62 @@
+---
+# file: roles/kvm/tasks/main.yml
+- name: packages update
+  yum: name=* state=latest
+
+- name: packages install
+  yum: name={{item}} state=present
+  with_items:
+    - qemu-kvm
+    - libvirt
+    - virt-install
+    - virt-manager
+
+- name: physical interface settings.
+  template: src=ifcfg-eth0.j2 dest=/etc/sysconfig/network-scripts/ifcfg-{{bridge_if}} owner=root group=root mode=644
+  notify: network restart
+
+- name: bridge interface settings.
+  template: src=ifcfg-br0.j2 dest=/etc/sysconfig/network-scripts/ifcfg-br0 owner=root group=root mode=644
+  notify: network restart
+
+- name: enable network services
+  service: name=network state=started enabled=yes
+
+- name: ip link check
+  command: ip link
+  register: ip_link_check
+  failed_when: ip_link_check.rc not in [0,1,3]
+  changed_when: ip_link_check.rc != 0
+
+- name: enable bridge
+  service: name=network state=restarted
+  when: ip_link_check.stdout.find(' br0') == -1
+
+- name: enable nested kvm
+  lineinfile: dest=/etc/modprobe.d/kvm-nested.conf regexp='^options kvm_amd nested.*' line="options kvm_intel nested=1" state=present create=yes
+
+- name: libvirtd service
+  service: name=libvirtd state=started enabled=yes
+
+- name: kvm firewalld settings
+  firewalld: zone=trusted permanent=true state=enabled
+
+- name: kvm firewalld runtime
+  firewalld: zone=trusted permanent=false state=enabled
+
+- name: default kvm net-list check
+  command: virsh net-list
+  register: kvm_net_list_check
+  failed_when: kvm_net_list_check.rc not in [0,1,2]
+  changed_when: kvm_net_list_check.stdout.find('default') != -1
+
+- name: delete kvm default-net
+  shell: virsh net-destroy default && virsh net-autostart default --disable && virsh net-undefine default
+  when: kvm_net_list_check.stdout.find('default') != -1
+
+- name: kvm net settings
+  template: src=internal.xml.j2 dest=/root/internal.xml owner=root group=root mode=644
+
+- name: define internal net
+  shell: virsh net-define /root/internal.xml && virsh net-start internal && virsh net-autostart internal
+  when: kvm_net_list_check.stdout.find('internal') == -1
