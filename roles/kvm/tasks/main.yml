@@ -33,7 +33,7 @@
   when: ip_link_check.stdout.find(' br0') == -1
 
 - name: enable nested kvm
-  lineinfile: dest=/etc/modprobe.d/kvm-nested.conf regexp='^options kvm_amd nested.*' line="options kvm_intel nested=1" state=present create=yes
+  lineinfile: dest=/etc/modprobe.d/kvm-nested.conf regexp='^options kvm_amd nested.*' line="options kvm_amd nested=1" state=present create=yes
 
 - name: libvirtd service
   service: name=libvirtd state=started enabled=yes
